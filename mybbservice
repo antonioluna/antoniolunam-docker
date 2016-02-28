@@ -1,0 +1,26 @@
+#!/bin/bash
+
+sql="/etc/init.d/mysql start" 
+aph="/usr/sbin/apache2ctl -D FOREGROUND" 
+BBDD=$(echo "$MYBB_BBDD")
+BDUSER=$(echo "$MYBB_USER")
+BDPASSWD=$(echo "$MYBB_PASSWD")
+DBSTATUS=$(cat /dbstatus)
+
+$sql &
+
+if [[ "$DBSTATUS" = "0" ]]; then
+	echo "CREATED" > /dbstatus
+	sleep 15
+
+	if [[ "$BDUSER" = "root" ]]; then
+		mysqladmin -u root password "$BDPASSWD"
+		mysql -u root -p$BDPASSWD -e "CREATE DATABASE $BBDD"
+
+	else
+		mysqladmin -u root password $BDPASSWD
+		mysql -u root -p$BDPASSWD -e "CREATE USER $BDUSER@localhost IDENTIFIED BY '$BDPASSWD'; CREATE DATABASE $BBDD; GRANT ALL PRIVILEGES ON $BBDD.* TO $BDUSER@localhost"
+	fi
+fi
+
+$aph
